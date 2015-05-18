@@ -646,9 +646,20 @@ public final class DiskLruCache implements Closeable {
 
   private void trimToSize() throws IOException {
     while (size > maxSize) {
-      Map.Entry<String, Entry> toEvict = lruEntries.entrySet().iterator().next();
-      remove(toEvict.getKey());
+      if (!tryRemoveEntryFromOldest()) {
+        // cannot remove any entry (all are being edited), skip the trim
+        break;
+      }
     }
+  }
+
+  private boolean tryRemoveEntryFromOldest() throws IOException {
+    for (Map.Entry<String, Entry> toEvict : lruEntries.entrySet()) {
+      if (remove(toEvict.getKey())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
